@@ -97,6 +97,7 @@ public class ConfigurationRepository {
     public static final int DEFAULT_CONFIG_VERSION = 2;
     private final CompletableFuture<Void> initalizeConfigTask = new CompletableFuture<>();
     private final boolean acceptInvalid;
+    private boolean securityConfigExists;
 
     private ConfigurationRepository(
         Settings settings,
@@ -118,12 +119,27 @@ public class ConfigurationRepository {
         this.auditLog = auditLog;
         this.configurationChangedListener = new ArrayList<>();
         this.acceptInvalid = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false);
+        this.securityConfigExists = false;
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
 
         configCache = CacheBuilder.newBuilder().build();
     }
 
-    private void initalizeClusterConfiguration(final boolean installDefaultConfig) {
+    // This allows tests to "jump" over the file check during
+    boolean securityConfigExists() {
+        return securityConfigExists;
+    }
+
+    // This is similarly lets us jump test only failures so we can exercise the logic inside the default installation process
+    String getConfigurationDirectory() {
+        String lookupDir = System.getProperty("security.default_init.dir");
+        final String cd = lookupDir != null
+                ? (lookupDir + "/")
+                : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+        return cd;
+    }
+
+    void initializeClusterConfiguration(final boolean installDefaultConfig) {
         try {
             LOGGER.info("Background init thread started. Install default config?: " + installDefaultConfig);
             // wait for the cluster here until it will finish managed node election
@@ -135,12 +151,13 @@ public class ConfigurationRepository {
             if (installDefaultConfig) {
 
                 try {
-                    String lookupDir = System.getProperty("security.default_init.dir");
-                    final String cd = lookupDir != null
-                        ? (lookupDir + "/")
-                        : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
+                    String cd = getConfigurationDirectory();
                     File confFile = new File(cd + "config.yml");
                     if (confFile.exists()) {
+                        securityConfigExists = true;
+                    }
+                    if (securityConfigExists()) {
+                        LOGGER.info("Populating the threadcontext from the security configuration.");
                         final ThreadContext threadContext = threadPool.getThreadContext();
                         try (StoredContext ctx = threadContext.stashContext()) {
                             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
@@ -267,7 +284,7 @@ public class ConfigurationRepository {
         }
     }
 
-    private boolean createSecurityIndexIfAbsent() {
+    boolean createSecurityIndexIfAbsent() {
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityIndex).settings(indexSettings);
@@ -317,7 +334,7 @@ public class ConfigurationRepository {
 
         final Supplier<CompletableFuture<Boolean>> startInitialization = () -> {
             new Thread(() -> {
-                initalizeClusterConfiguration(installDefaultConfig);
+                initializeClusterConfiguration(installDefaultConfig);
                 initalizeConfigTask.complete(null);
             }).start();
             return initalizeConfigTask.thenApply(result -> installDefaultConfig);
@@ -392,7 +409,7 @@ public class ConfigurationRepository {
         return reloadConfiguration(configTypes, false);
     }
 
-    private boolean reloadConfiguration(final Collection<CType> configTypes, final boolean fromBackgroundThread)
+    boolean reloadConfiguration(final Collection<CType> configTypes, final boolean fromBackgroundThread)
         throws ConfigUpdateAlreadyInProgressException {
         if (!fromBackgroundThread && !initalizeConfigTask.isDone()) {
             LOGGER.warn("Unable to reload configuration, initalization thread has not yet completed.");
