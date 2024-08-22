@@ -45,6 +45,7 @@ public class KeySetRetriever implements KeySetProvider {
     private SSLConfig sslConfig;
     private int requestTimeoutMs = 10000;
     private CacheConfig cacheConfig;
+    private String userInfoEndpoint;
     private HttpCacheStorage oidcHttpCacheStorage;
     private int oidcCacheHits = 0;
     private int oidcCacheMisses = 0;
@@ -235,6 +236,10 @@ public class KeySetRetriever implements KeySetProvider {
             cacheConfig = CacheConfig.custom().setMaxCacheEntries(10).setMaxObjectSize(1024L * 1024L).build();
             oidcHttpCacheStorage = new BasicHttpCacheStorage(cacheConfig);
         }
+    }
+
+    public void setUserInfoEndpoint(String userInfoEndpoint) {
+        this.userInfoEndpoint = userInfoEndpoint;
     }
 
     public int getOidcCacheHits() {
