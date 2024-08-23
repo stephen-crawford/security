@@ -19,17 +19,14 @@ import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.HttpEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -46,8 +43,8 @@ import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
-import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
+import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.APPLICATION_JWT;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
@@ -140,9 +137,9 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             HttpGet httpGet = new HttpGet(this.userInfoEndpoint);
 
             RequestConfig requestConfig = RequestConfig.custom()
-                    .setConnectionRequestTimeout(requestTimeoutMs)
-                    .setConnectTimeout(requestTimeoutMs)
-                    .build();
+                .setConnectionRequestTimeout(requestTimeoutMs)
+                .setConnectTimeout(requestTimeoutMs)
+                .build();
 
             httpGet.setConfig(requestConfig);
             httpGet.addHeader(AUTHORIZATION, request.getHeaders().get(AUTHORIZATION).get(0));
@@ -150,10 +147,9 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
             // HTTPGet should internally verify the appropriate TLS cert.
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
 
-                StatusLine statusLine = response.getStatusLine();
-                if (statusLine.getStatusCode() < 200 || statusLine.getStatusCode() >= 300) {
+                if (response.getStatusLine().getStatusCode() < 200 || response.getStatusLine().getStatusCode() >= 300) {
                     throw new AuthenticatorUnavailableException(
-                            "Error while getting " + this.userInfoEndpoint + ": " + statusLine
+                        "Error while getting " + this.userInfoEndpoint + ": Invalid status code " + response.getStatusLine().getStatusCode()
                     );
                 }
 
@@ -166,16 +162,16 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 String contentType = httpEntity.getContentType().getValue();
                 if (!contentType.contains(APPLICATION_JSON.getMimeType()) && !contentType.contains(APPLICATION_JWT)) {
                     throw new AuthenticatorUnavailableException(
-                            "Error while getting " + this.userInfoEndpoint + ": Invalid content type in response"
+                        "Error while getting " + this.userInfoEndpoint + ": Invalid content type in response"
                     );
                 }
 
                 String userinfoContent;
 
                 try (
-                        // got this from ChatGpt & Amazon Q
-                        InputStream inputStream = httpEntity.getContent();
-                        InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)
+                    // got this from ChatGpt & Amazon Q
+                    InputStream inputStream = httpEntity.getContent();
+                    InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)
                 ) {
                     StringBuilder content = new StringBuilder();
                     char[] buffer = new char[8192];
@@ -186,7 +182,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                     userinfoContent = content.toString();
                 } catch (IOException e) {
                     throw new AuthenticatorUnavailableException(
-                            "Error while getting " + this.userInfoEndpoint + ": Unable to read response content"
+                        "Error while getting " + this.userInfoEndpoint + ": Unable to read response content"
                     );
                 }
 
@@ -203,7 +199,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 String missing = validateResponseClaims(claims, id, isSigned);
                 if (!missing.isBlank()) {
                     throw new AuthenticatorUnavailableException(
-                            "Error while getting " + this.userInfoEndpoint + ": Missing or invalid required claims in response: " + missing
+                        "Error while getting " + this.userInfoEndpoint + ": Missing or invalid required claims in response: " + missing
                     );
                 }
 
@@ -243,8 +239,8 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 missing = missing.concat("iss");
             }
             if (claims.getAudience() == null
-                    || claims.getAudience().toString().isBlank()
-                    || !claims.getAudience().contains(settings.get(CLIENT_ID))) {
+                || claims.getAudience().toString().isBlank()
+                || !claims.getAudience().contains(settings.get(CLIENT_ID))) {
                 missing = missing.concat("aud");
             }
         }
@@ -269,15 +265,15 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
             if (jwksUri != null && !jwksUri.isBlank()) {
                 keySetRetriever = new KeySetRetriever(
-                        getSSLConfig(settings, configPath),
-                        settings.getAsBoolean("cache_jwks_endpoint", false),
-                        jwksUri
+                    getSSLConfig(settings, configPath),
+                    settings.getAsBoolean("cache_jwks_endpoint", false),
+                    jwksUri
                 );
             } else {
                 keySetRetriever = new KeySetRetriever(
-                        settings.get("openid_connect_url"),
-                        getSSLConfig(settings, configPath),
-                        settings.getAsBoolean("cache_jwks_endpoint", false)
+                    settings.get("openid_connect_url"),
+                    getSSLConfig(settings, configPath),
+                    settings.getAsBoolean("cache_jwks_endpoint", false)
                 );
             }
 
