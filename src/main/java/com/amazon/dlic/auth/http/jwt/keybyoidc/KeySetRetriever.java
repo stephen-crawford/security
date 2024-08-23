@@ -53,6 +53,7 @@ public class KeySetRetriever implements KeySetProvider {
     private long oidcRequests = 0;
     private long lastCacheStatusLog = 0;
     private String jwksUri;
+    private String userInfoEndpoint;
 
     KeySetRetriever(String openIdConnectEndpoint, SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint) {
         this.openIdConnectEndpoint = openIdConnectEndpoint;
@@ -235,6 +236,10 @@ public class KeySetRetriever implements KeySetProvider {
             cacheConfig = CacheConfig.custom().setMaxCacheEntries(10).setMaxObjectSize(1024L * 1024L).build();
             oidcHttpCacheStorage = new BasicHttpCacheStorage(cacheConfig);
         }
+    }
+
+    public void setUserInfoEndpoint(String userInfoEndpoint) {
+        this.userInfoEndpoint = userInfoEndpoint;
     }
 
     public int getOidcCacheHits() {
