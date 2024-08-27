@@ -23,9 +23,6 @@ import com.nimbusds.oauth2.sdk.token.AccessTokenType;
 import com.nimbusds.openid.connect.sdk.UserInfoRequest;
 import com.nimbusds.openid.connect.sdk.UserInfoResponse;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
@@ -35,17 +32,6 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
-
-import com.nimbusds.common.contenttype.ContentType;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
-import com.nimbusds.oauth2.sdk.http.HTTPRequest;
-import com.nimbusds.oauth2.sdk.http.HTTPResponse;
-import com.nimbusds.oauth2.sdk.token.AccessToken;
-import com.nimbusds.oauth2.sdk.token.AccessTokenType;
-import com.nimbusds.oauth2.sdk.util.StringUtils;
-import com.nimbusds.openid.connect.sdk.UserInfoRequest;
-import com.nimbusds.openid.connect.sdk.UserInfoResponse;
 
 import java.io.IOException;
 import java.net.URI;
@@ -134,7 +120,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
             URI userInfoEndpointURI = new URI(this.userInfoEndpoint);
 
-            String bearerHeader = request.getHeaders().get(AUTHORIZATION).getFirst();
+            String bearerHeader = request.getHeaders().get(AUTHORIZATION).get(0);
             if (!StringUtils.isBlank(bearerHeader)) {
                 if (bearerHeader.contains("Bearer ")) {
                     bearerHeader = bearerHeader.substring(7);
