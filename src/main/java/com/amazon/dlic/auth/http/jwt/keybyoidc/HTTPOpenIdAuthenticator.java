@@ -11,6 +11,25 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.text.ParseException;
+import java.util.Map;
+import java.util.Optional;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.security.user.AuthCredentials;
+
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 import com.nimbusds.common.contenttype.ContentType;
@@ -20,26 +39,9 @@ import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.AccessTokenType;
+import com.nimbusds.oauth2.sdk.util.StringUtils;
 import com.nimbusds.openid.connect.sdk.UserInfoRequest;
 import com.nimbusds.openid.connect.sdk.UserInfoResponse;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.auth.HTTPAuthenticator;
-import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.filter.SecurityResponse;
-import org.opensearch.security.user.AuthCredentials;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.text.ParseException;
-import java.util.Map;
-import java.util.Optional;
 
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.CLIENT_ID;
 import static com.amazon.dlic.auth.http.jwt.keybyoidc.OpenIdConstants.ISSUER_ID_URL;
@@ -65,13 +67,6 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
     }
 
     public HTTPJwtKeyByOpenIdConnectAuthenticator getOpenIdJwtAuthenticator() {
-        if (openIdJwtAuthenticator == null) {
-            synchronized (this) {
-                if (openIdJwtAuthenticator == null) {
-                    openIdJwtAuthenticator = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, configPath);
-                }
-            }
-        }
         return openIdJwtAuthenticator;
     }
 
@@ -240,15 +235,15 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
 
             if (jwksUri != null && !jwksUri.isBlank()) {
                 keySetRetriever = new KeySetRetriever(
-                    getSSLConfig(settings, configPath),
-                    settings.getAsBoolean("cache_jwks_endpoint", false),
-                    jwksUri
+                        getSSLConfig(settings, configPath),
+                        settings.getAsBoolean("cache_jwks_endpoint", false),
+                        jwksUri
                 );
             } else {
                 keySetRetriever = new KeySetRetriever(
-                    settings.get("openid_connect_url"),
-                    getSSLConfig(settings, configPath),
-                    settings.getAsBoolean("cache_jwks_endpoint", false)
+                        settings.get("openid_connect_url"),
+                        getSSLConfig(settings, configPath),
+                        settings.getAsBoolean("cache_jwks_endpoint", false)
                 );
             }
 
