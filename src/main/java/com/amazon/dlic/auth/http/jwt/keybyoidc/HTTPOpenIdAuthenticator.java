@@ -155,7 +155,7 @@ public class HTTPOpenIdAuthenticator implements HTTPAuthenticator {
                 String contentType = String.valueOf(httpResponse.getHeaderValues("content-type"));
 
                 JWTClaimsSet claims;
-                boolean isSigned = contentType.contains(ContentType.APPLICATION_JWT.toString());
+                boolean isSigned = contentType.contains(ContentType.APPLICATION_JWT.getType());
                 if (isSigned) { // We don't need the userinfo_encrypted_response_alg since the
                     // selfRefreshingKeyProvider has access to the keys
                     claims = openIdJwtAuthenticator.getJwtClaimsSetFromInfoContent(
